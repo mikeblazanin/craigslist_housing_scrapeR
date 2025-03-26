@@ -56,9 +56,9 @@ scrape_craigslist <- function(
     min_bath = 1,
     query = "kitsilano",
     category = "apa",
-    region_lat = c(49.256, 49.28),
-    region_long = c(-123.19, -123.127)) {
-  
+    regions = list(broader_kits = list(c(49.256, 49.28), c(-123.19, -123.127)),
+                   core_kits = list(c(49.271, 49.260), c(-123.19, -123.16)))) {
+
   require(rvest)
   require(stringr)
   
@@ -162,10 +162,20 @@ scrape_craigslist <- function(
   out$rent_pp <- out$price/out$beds
   out$ft_pp <- out$sqft/out$beds
   
-  out$in_region <- 
-    ifelse(out$lat > min(region_lat) & out$lat < max(region_lat) &
-             out$long > min(region_long) & out$long < max(region_long),
-           TRUE, FALSE)
+  names(regions)[names(regions) == ""] <- 
+    paste0("region_", (1:length(regions))[names(regions) == ""])
+  out <- cbind(out,
+               setNames(data.frame(matrix(ncol = length(regions), 
+                                          nrow = nrow(out))),
+                        names(regions)))
+  for(i in 1:length(regions)) {
+    out[, names(regions)[i]] <-
+      ifelse(out$lat > min(regions[[i]][[1]]) &
+               out$lat < max(regions[[i]][[1]]) &
+               out$long > min(regions[[i]][[2]]) &
+               out$long < max(regions[[i]][[2]]),
+             TRUE, FALSE)
+  }
   
   out$posted <- gsub("posted: ", "", out$posted)
   out$updated <- gsub("updated: ", "", out$updated)
